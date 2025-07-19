@@ -1,57 +1,16 @@
-
 import streamlit as st
 import pandas as pd
 import datetime
-import matplotlib.pyplot as plt
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from gspread_dataframe import get_as_dataframe
 
-# Streamlit page config
 st.set_page_config(page_title="SIP Wealth Tracker", layout="wide")
+
 st.title("📈 SIP Wealth Tracker")
 
-# Google Sheets authentication
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", scope)
-client = gspread.authorize(creds)
-
-# Load NAV History from Google Sheet
-try:
-    sheet = client.open("SIP_NAV_HISTORY").worksheet("NAV History")
-    nav_df = get_as_dataframe(sheet, evaluate_formulas=True)
-    nav_df = nav_df.dropna(subset=["Date"])
-    nav_df["Date"] = pd.to_datetime(nav_df["Date"])
-    nav_df = nav_df.sort_values("Date")
-except Exception as e:
-    st.error(f"Failed to load NAV History: {e}")
-    nav_df = pd.DataFrame()
-
-# Show latest NAVs
-if not nav_df.empty:
-    st.subheader("📋 Latest NAVs")
-    latest = nav_df.iloc[-1]
-    st.write(f"**Date:** {latest['Date'].date()}")
-    st.metric("ICICI Infra NAV", f"{latest['ICICI Infra NAV']:.2f}")
-    st.metric("Parag Parikh NAV", f"{latest['Parag Parikh NAV']:.2f}")
-    st.metric("ICICI Liquid NAV", f"{latest['ICICI Liquid NAV']:.2f}")
-
-    # Plot NAV trends
-    st.subheader("📊 NAV Trend Over Time")
-    fig, ax = plt.subplots()
-    for col in nav_df.columns[1:]:
-        ax.plot(nav_df["Date"], nav_df[col], label=col)
-    ax.set_xlabel("Date")
-    ax.set_ylabel("NAV")
-    ax.set_title("NAV Trends")
-    ax.legend()
-    st.pyplot(fig)
-
-# Initialize session state for SIP data
+# Initialize session state for data
 if "sip_data" not in st.session_state:
     st.session_state.sip_data = []
 
-# SIP Entry Form
+# Form for SIP Entry
 with st.form("sip_form"):
     st.subheader("➕ Add SIP Entry")
     sip_date = st.date_input("SIP Date", value=datetime.date.today())
@@ -65,15 +24,10 @@ with st.form("sip_form"):
         parag_parikh_sip = total_sip * 0.3
         icici_liquid_sip = total_sip * 0.1 if month_number <= 36 else 0
 
-        # Use latest NAVs if available
-        if not nav_df.empty:
-            nav_infra = latest['ICICI Infra NAV']
-            nav_parikh = latest['Parag Parikh NAV']
-            nav_liquid = latest['ICICI Liquid NAV']
-        else:
-            nav_infra = 191.49
-            nav_parikh = 92.33
-            nav_liquid = 400
+        # Placeholder NAVs (can be replaced with actual NAV lookup)
+        nav_infra = 191.49
+        nav_parikh = 92.33
+        nav_liquid = 400
 
         infra_units = icici_infra_sip / nav_infra
         parikh_units = parag_parikh_sip / nav_parikh
