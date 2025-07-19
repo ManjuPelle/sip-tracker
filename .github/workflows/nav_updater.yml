@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Decode and save service account key
-        run: echo "${{ secrets.GO_SERVICE_ACCOUNT_KEY }}" > service_account.json
+        run: echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d > service_account.json
 
       - name: Run NAV updater
         run: python nav_updater.py
