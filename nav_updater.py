@@ -19,7 +19,11 @@ TAB_NAME = "NAV History"
 
 # Load credentials and authorize gspread
 def authorize_gspread():
-    creds = Credentials.from_service_account_file("service_account.json", scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
     client = gspread.authorize(creds)
     return client
 
