@@ -3,3 +3,6 @@ pandas
 gspread
 google-auth
 requests
+oauth2client
+gspread_dataframe
+matplotlib
