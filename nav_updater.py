@@ -2,47 +2,54 @@ import requests
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
 
-# Define the mutual funds to track
+# Define the fund codes and names
 funds = {
-    "ICICI Prudential Infrastructure Fund - Growth": "120503",
-    "Parag Parikh Flexi Cap Fund - Growth": "120825",
-    "ICICI Prudential Liquid Fund - Growth": "100049"
+    "INF109K01BL4": "ICICI Prudential Infrastructure Fund",
+    "INF277K01HQ0": "Parag Parikh Flexi Cap Fund",
+    "INF109K01VQ1": "ICICI Prudential Liquid Fund"
 }
 
-# Fetch NAV data from AMFI
-def fetch_nav(scheme_code):
-    url = f"https://www.amfiindia.com/spages/NAVAll.txt"
-    response = requests.get(url)
-    lines = response.text.splitlines()
-    for line in lines:
-        if line.startswith(scheme_code):
-            parts = line.split(';')
-            return float(parts[4]), parts[6]
-    return None, None
+# AMFI NAV data URL
+AMFI_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
 
-# Authenticate with Google Sheets
-def get_gsheet_client():
-    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    credentials = Credentials.from_service_account_file("service_account.json", scopes=scopes)
-    client = gspread.authorize(credentials)
+# Google Sheet details
+SHEET_NAME = "SIP_NAV_History"
+TAB_NAME = "NAV History"
+
+# Load credentials and authorize gspread
+def authorize_gspread():
+    creds = Credentials.from_service_account_file("service_account.json", scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    client = gspread.authorize(creds)
     return client
 
-# Update Google Sheet
-def update_sheet(data):
-    client = get_gsheet_client()
-    sheet = client.open("SIP_NAV_History").worksheet("NAV History")
-    sheet.append_row(data, value_input_option="USER_ENTERED")
+# Fetch NAV for a given fund code
+def fetch_nav(fund_code):
+    response = requests.get(AMFI_URL)
+    lines = response.text.splitlines()
+    for line in lines:
+        if fund_code in line:
+            parts = line.strip().split(";")
+            if len(parts) >= 7:
+                try:
+                    return float(parts[4]), parts[6]
+                except ValueError:
+                    continue
+    return None, None
 
-# Main logic
+# Main function to update the sheet
 def main():
-    today = datetime.today().strftime("%d-%m-%Y")
-    row = [today]
-    for name, code in funds.items():
+    client = authorize_gspread()
+    sheet = client.open(SHEET_NAME).worksheet(TAB_NAME)
+
+    nav_data = []
+    for code, name in funds.items():
         nav, date = fetch_nav(code)
-        row.append(nav)
-    update_sheet(row)
+        if nav is not None and date is not None:
+            nav_data.append([date, name, nav])
+
+    if nav_data:
+        sheet.append_rows(nav_data, value_input_option="USER_ENTERED")
 
 if __name__ == "__main__":
     main()
